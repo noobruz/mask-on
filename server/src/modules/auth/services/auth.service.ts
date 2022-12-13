@@ -16,7 +16,7 @@ export class AuthService {
   }
 
   async validate(id: string) {
-    const user = await this.ormService.user.findFirst({
+    const user = await this.ormService.user.findFirstOrThrow({
       where: {
         id,
       },
