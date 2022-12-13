@@ -13,4 +13,31 @@ datasource db {
 model User {
   id       String  @id @default(uuid())
   username String?
+  sent     Chat[]  @relation("sent")
+  recieved Chat[]  @relation("recieved")
+
+  @@map("users")
+}
+
+model Chat {
+  id            Int         @id @default(autoincrement())
+  sender_id     String
+  sender        User        @relation("sent", fields: [sender_id], references: [id])
+  reciever_id   String
+  reciever      User        @relation("recieved", fields: [reciever_id], references: [id])
+  message       String
+  attachment_id Int
+  attachment    Attachment? @relation(fields: [attachment_id], references: [id])
+  replies       Chat[]      @relation("replies")
+  reply_id      Chat?       @relation("replies", fields: [parentId], references: [id])
+  parentId      Int?        @map("parent_id")
+  @@map("chats")
+}
+
+model Attachment {
+  id       Int    @id @default(autoincrement())
+  type     String
+  location String
+  Chat     Chat[]
+  @@map("attachment")
 }

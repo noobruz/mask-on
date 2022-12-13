@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { OrmService } from './database/orm.service';
+import { SocketIOAdapter } from './modules/gateway/adapter/socket-io.adapter';
+import { WsCatchAllFilter } from './modules/gateway/exception/ws-catch-all.filter';
 
 declare const module: any;
 async function bootstrap() {
@@ -15,8 +17,12 @@ async function bootstrap() {
       disableErrorMessages: false,
     }),
   );
-
+  app.useGlobalFilters(
+    new WsCatchAllFilter()
+  )
+app.useWebSocketAdapter(new SocketIOAdapter(app,configService))
   const port = configService.get<number>('app.port');
+
   await app.listen(port);
 
   if (module.hot) {
