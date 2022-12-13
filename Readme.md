@@ -42,6 +42,6 @@
 
 CHECK INDIVIVIDUAL READMES
 
-[client readme](client/Readme.md)
+[client readme](client/README.md)
 
-[server readme](server/Readme.md)
+[server readme](server/README.md)
