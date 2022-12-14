@@ -14,6 +14,7 @@ import { Namespace, Server } from 'socket.io';
 import { Room, SocketWithAuth } from 'src/common/types/types';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { WsCatchAllFilter } from '../exception/ws-catch-all.filter';
+import _, { map } from 'lodash';
 
 // @UseFilters(new WsCatchAllFilter())
 // @UsePipes(new ValidationPipe())
@@ -24,34 +25,56 @@ export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(ChatGateway.name);
-  private readonly rooms: Map<string, Room>;
-  private readonly users: Array<User>;
+  private rooms: Map<string, Room>;
+  private users: Array<User>;
+  private usersInRoom: Array<User>;
   @WebSocketServer() io: Namespace;
   constructor() {
     this.rooms = new Map();
-    this.users = []
+    this.users = [];
+    this.usersInRoom = [];
   }
   afterInit(server: any) {
     this.logger.log('Initialized Gateway Successfully');
   }
-   handleConnection(client: SocketWithAuth) {
-    this.logger.log('User logged in ' + client.user.id);
+  handleConnection(socket: SocketWithAuth) {
+    this.logger.log('User logged in ' + socket.user.id);
     this.users.push({
-      id: client.user.id,
-      username: client.user.username,
+      id: socket.user.id,
+      username: socket.user.username,
     });
   }
-  handleDisconnect(client: any) {
+  handleDisconnect(socket: SocketWithAuth) {
+    this.logger.log(this.users)
+    this.users = _.remove(this.users, socket.user);
+    this.logger.log(this.users)
+    if (this.usersInRoom.includes(socket.user)) {
+      const key = _.keys(this.rooms).filter((key) => {
+        const room = this.rooms.get(key);
+        if (room.client == socket.user || room.host == socket.user) {
+          return true;
+        }
+        return false;
+      })[0];
+      this.logger.log(key);
+      this.rooms.delete(key);
+      this.logger.log(this.usersInRoom)
+      this.usersInRoom = _.remove(this.usersInRoom, socket.user);
+      this.logger.log(this.usersInRoom)
+    }
     this.logger.log('Handle Logout');
   }
 
   @SubscribeMessage('joinOrHost')
-   createOrJoinRoom(socket: SocketWithAuth): WsResponse<unknown> {
+  createOrJoinRoom(socket: SocketWithAuth): WsResponse<unknown> {
+    if (this.usersInRoom.includes(socket.user)) {
+      return;
+    }
     const roomKeys = [...this.rooms.keys()];
     const emptyRoomKeys = roomKeys.filter(
       (key) => this.rooms.get(key).inUse == false,
     );
-    if (emptyRoomKeys.length>0) {
+    if (emptyRoomKeys.length > 0) {
       const key = emptyRoomKeys[0];
       const room = this.rooms.get(key);
       room.client = socket.user;
@@ -59,21 +82,22 @@ export class ChatGateway
       socket.join(room.id);
       socket.in(room.id).emit('roomJoined', { event: 'client joined', room });
       this.rooms.set(key, room);
-      return {data:room,event:'roomJoined'} ;
+      this.usersInRoom.push(socket.user);
+      return { data: room, event: 'roomJoined' };
     }
     const room: Room = {
       id: socket.user.id,
       inUse: false,
       host: socket.user,
     };
-  
+
     this.rooms.set(`${room.id}`, room);
     socket.join(room.id);
-    return {data:room,event:'roomJoined'} ;
+    return { data: room, event: 'roomJoined' };
   }
 
   @SubscribeMessage('chat')
-  chat(socket:SocketWithAuth,data:{room:string,message:any}){
-    socket.in(data.room).emit('chat',data.message)
+  chat(socket: SocketWithAuth, data: { room: string; message: any }) {
+    socket.in(data.room).emit('chat', data.message);
   }
 }
