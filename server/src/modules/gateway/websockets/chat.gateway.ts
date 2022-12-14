@@ -29,11 +29,12 @@ export class ChatGateway
   @WebSocketServer() io: Namespace;
   constructor() {
     this.rooms = new Map();
+    this.users = []
   }
   afterInit(server: any) {
     this.logger.log('Initialized Gateway Successfully');
   }
-  async handleConnection(client: SocketWithAuth) {
+   handleConnection(client: SocketWithAuth) {
     this.logger.log('User logged in ' + client.user.id);
     this.users.push({
       id: client.user.id,
@@ -45,12 +46,12 @@ export class ChatGateway
   }
 
   @SubscribeMessage('joinOrHost')
-  async createOrJoinRoom(socket: SocketWithAuth): Promise<WsResponse<any>> {
+   createOrJoinRoom(socket: SocketWithAuth): WsResponse<unknown> {
     const roomKeys = [...this.rooms.keys()];
     const emptyRoomKeys = roomKeys.filter(
       (key) => this.rooms.get(key).inUse == false,
     );
-    if (emptyRoomKeys) {
+    if (emptyRoomKeys.length>0) {
       const key = emptyRoomKeys[0];
       const room = this.rooms.get(key);
       room.client = socket.user;
@@ -58,15 +59,21 @@ export class ChatGateway
       socket.join(room.id);
       socket.in(room.id).emit('roomJoined', { event: 'client joined', room });
       this.rooms.set(key, room);
-      return;
+      return {data:room,event:'roomJoined'} ;
     }
     const room: Room = {
       id: socket.user.id,
       inUse: false,
       host: socket.user,
     };
+  
     this.rooms.set(`${room.id}`, room);
     socket.join(room.id);
-    socket.in(room.id).emit('roomJoined', { event: 'hosted a room', room });
+    return {data:room,event:'roomJoined'} ;
+  }
+
+  @SubscribeMessage('chat')
+  chat(socket:SocketWithAuth,data:{room:string,message:any}){
+    socket.in(data.room).emit('chat',data.message)
   }
 }
