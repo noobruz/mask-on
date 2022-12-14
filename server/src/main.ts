@@ -21,6 +21,7 @@ async function bootstrap() {
     new WsCatchAllFilter()
   )
 app.useWebSocketAdapter(new SocketIOAdapter(app,configService))
+app.setGlobalPrefix('/api/v1')
   const port = configService.get<number>('app.port');
 
   await app.listen(port);
