@@ -14,7 +14,7 @@ import { Namespace, Server } from 'socket.io';
 import { Room, SocketWithAuth } from 'src/common/types/types';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { WsCatchAllFilter } from '../exception/ws-catch-all.filter';
-import _, { map } from 'lodash';
+import { remove,keys } from 'lodash';
 
 // @UseFilters(new WsCatchAllFilter())
 // @UsePipes(new ValidationPipe())
@@ -45,22 +45,17 @@ export class ChatGateway
     });
   }
   handleDisconnect(socket: SocketWithAuth) {
-    this.logger.log(this.users)
-    this.users = _.remove(this.users, socket.user);
-    this.logger.log(this.users)
+    this.users = remove(this.users, socket.user);
     if (this.usersInRoom.includes(socket.user)) {
-      const key = _.keys(this.rooms).filter((key) => {
+      const key = keys(this.rooms).filter((key) => {
         const room = this.rooms.get(key);
         if (room.client == socket.user || room.host == socket.user) {
           return true;
         }
         return false;
       })[0];
-      this.logger.log(key);
       this.rooms.delete(key);
-      this.logger.log(this.usersInRoom)
-      this.usersInRoom = _.remove(this.usersInRoom, socket.user);
-      this.logger.log(this.usersInRoom)
+      this.usersInRoom = remove(this.usersInRoom, socket.user);
     }
     this.logger.log('Handle Logout');
   }
@@ -82,7 +77,7 @@ export class ChatGateway
       socket.join(room.id);
       socket.in(room.id).emit('roomJoined', { event: 'client joined', room });
       this.rooms.set(key, room);
-      this.usersInRoom.push(socket.user);
+      this.usersInRoom.push(socket.user); this.usersInRoom.push(socket.user);
       return { data: room, event: 'roomJoined' };
     }
     const room: Room = {
@@ -92,6 +87,7 @@ export class ChatGateway
     };
 
     this.rooms.set(`${room.id}`, room);
+    this.usersInRoom.push(socket.user);
     socket.join(room.id);
     return { data: room, event: 'roomJoined' };
   }
