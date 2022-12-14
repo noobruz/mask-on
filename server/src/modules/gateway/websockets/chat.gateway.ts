@@ -27,7 +27,7 @@ export class ChatGateway
   private readonly rooms: Map<string, Room>;
   private readonly users: Array<User>;
   @WebSocketServer() io: Namespace;
-  constructor(private readonly authService: AuthService) {
+  constructor() {
     this.rooms = new Map();
   }
   afterInit(server: any) {
