@@ -40,8 +40,7 @@ const createTokenMiddleware =
     authService
       .validate(payload)
       .then((user) => {
-        socket.userID = user.id;
-        socket.name = user.username;
+        socket.user=user
         next();
       })
       .catch((e) => next(new Error('FORBIDDEN')));
