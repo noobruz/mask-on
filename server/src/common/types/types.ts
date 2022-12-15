@@ -1,7 +1,14 @@
+import { User } from "@prisma/client";
 import { Socket } from "socket.io";
 
 export type AuthPayload = {
-    userID: string;
-    name?: string;
+    user:User
   };
 export type SocketWithAuth = Socket & AuthPayload;
+
+export type Room = {
+  inUse:boolean
+  host:User,
+  client?:User,
+  id:string
+}
