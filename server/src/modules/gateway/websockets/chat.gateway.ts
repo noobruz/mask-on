@@ -14,7 +14,13 @@ import { Namespace, Server } from 'socket.io';
 import { Room, SocketWithAuth } from 'src/common/types/types';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { WsCatchAllFilter } from '../exception/ws-catch-all.filter';
-import { remove,keys } from 'lodash';
+import { remove, keys, values, toArray } from 'lodash';
+
+interface UsersInRoom {
+  user: User;
+  roomId: string;
+  isHost: boolean;
+}
 
 // @UseFilters(new WsCatchAllFilter())
 // @UsePipes(new ValidationPipe())
@@ -27,7 +33,7 @@ export class ChatGateway
   private readonly logger = new Logger(ChatGateway.name);
   private rooms: Map<string, Room>;
   private users: Array<User>;
-  private usersInRoom: Array<User>;
+  private usersInRoom: Array<UsersInRoom>;
   @WebSocketServer() io: Namespace;
   constructor() {
     this.rooms = new Map();
@@ -45,24 +51,30 @@ export class ChatGateway
     });
   }
   handleDisconnect(socket: SocketWithAuth) {
-    this.users = remove(this.users, socket.user);
-    if (this.usersInRoom.includes(socket.user)) {
-      const key = keys(this.rooms).filter((key) => {
-        const room = this.rooms.get(key);
-        if (room.client == socket.user || room.host == socket.user) {
-          return true;
-        }
-        return false;
-      })[0];
-      this.rooms.delete(key);
-      this.usersInRoom = remove(this.usersInRoom, socket.user);
+    this.users = this.users.filter((user) => user.id !== socket.user.id);
+    console.log(this.usersInRoom);
+    const userInRoom = this.usersInRoom.find(
+      (userInRoom) => userInRoom.user.id == socket.user.id,
+    );
+    if (userInRoom) {
+      this.usersInRoom = this.usersInRoom.filter(
+        (room) => room.user.id !== socket.user.id,
+      );
+      const room = this.rooms.get(userInRoom.roomId);
+      if (userInRoom.isHost) {
+        this.rooms.delete(userInRoom.roomId);
+      }
     }
     this.logger.log('Handle Logout');
   }
 
   @SubscribeMessage('joinOrHost')
   createOrJoinRoom(socket: SocketWithAuth): WsResponse<unknown> {
-    if (this.usersInRoom.includes(socket.user)) {
+    if (
+      this.usersInRoom.find(
+        (userInRoom) => userInRoom.user.id == socket.user.id,
+      )
+    ) {
       return;
     }
     const roomKeys = [...this.rooms.keys()];
@@ -77,7 +89,7 @@ export class ChatGateway
       socket.join(room.id);
       socket.in(room.id).emit('roomJoined', { event: 'client joined', room });
       this.rooms.set(key, room);
-      this.usersInRoom.push(socket.user); this.usersInRoom.push(socket.user);
+      this.usersInRoom.push({ user: socket.user, roomId: room.id,isHost:false });
       return { data: room, event: 'roomJoined' };
     }
     const room: Room = {
@@ -87,7 +99,7 @@ export class ChatGateway
     };
 
     this.rooms.set(`${room.id}`, room);
-    this.usersInRoom.push(socket.user);
+    this.usersInRoom.push({ user: socket.user, roomId: room.id,isHost:true });
     socket.join(room.id);
     return { data: room, event: 'roomJoined' };
   }
