@@ -12,3 +12,10 @@ export type Room = {
   client?:User,
   id:string
 }
+
+
+export type UsersInRoom = {
+  user: User;
+  roomId: string;
+  isHost: boolean;
+}
