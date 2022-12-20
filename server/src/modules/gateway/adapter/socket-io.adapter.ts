@@ -2,7 +2,7 @@ import { INestApplicationContext, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions, Server } from 'socket.io';
-import { AuthPayload, SocketWithAuth } from 'src/common/types/types';
+import {  SocketWithAuth } from 'src/common/types/types';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { WsUnauthorizedException } from '../exception/ws-exceptions';
 
@@ -43,5 +43,5 @@ const createTokenMiddleware =
         socket.user=user
         next();
       })
-      .catch((e) => next(new Error('FORBIDDEN')));
+      .catch((e) => next(new WsUnauthorizedException('FORBIDDEN')));
   };

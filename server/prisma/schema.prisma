@@ -26,10 +26,10 @@ model Chat {
   reciever_id   String
   reciever      User        @relation("recieved", fields: [reciever_id], references: [id])
   message       String
-  attachment_id Int
+  attachment_id Int?
   attachment    Attachment? @relation(fields: [attachment_id], references: [id])
   replies       Chat[]      @relation("replies")
-  reply_id      Chat?       @relation("replies", fields: [parentId], references: [id])
+  parent      Chat?       @relation("replies", fields: [parentId], references: [id])
   parentId      Int?        @map("parent_id")
   @@map("chats")
 }
