@@ -9,12 +9,9 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { User } from '@prisma/client';
-import { Socket } from 'dgram';
-import { Namespace, Server } from 'socket.io';
+import { Namespace } from 'socket.io';
 import { Room, SocketWithAuth, UsersInRoom } from 'src/common/types/types';
-import { AuthService } from 'src/modules/auth/services/auth.service';
-import { WsCatchAllFilter } from '../exception/ws-catch-all.filter';
-import { remove, keys, values, toArray } from 'lodash';
+
 
 // @UseFilters(new WsCatchAllFilter())
 // @UsePipes(new ValidationPipe())
